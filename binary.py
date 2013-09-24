@@ -1,9 +1,29 @@
 import math
+from binascii import unhexlify
+from itertools import combinations
+
 from numpy import fft, abs, sum
 
-alpha = 0.01
+def expand_tokens_bits(tks):
+  l = len(tks[0]) * 8
+  r = []
+  for i in range(l):
+    idx = i/8
+    shift = 7 - (i % 8)
+    mask = (1 << shift)
+    r.append([((ord(t[idx]) & mask) >> shift) for t in tks])
+  return r
 
-def monobit_test(bsq):
+def bin_validate(tks):
+  sizes = set([ len(t) for t in tks])
+  if len(sizes) == 1:
+    print "Tokens are {} bits long".format(sizes.pop() * 8)
+    return True
+  else:
+    print "Tokens have various sizes: {}".format(sizes)
+    return False
+
+def frequency_test(bsq):
   bsqc = [ 2*x -1 for x in bsq ]
   n = len(bsq)
   s_obs = abs(sum(bsqc)) / math.sqrt(float(n))
@@ -55,3 +75,27 @@ def phi_coefficient_test(bsq1, bsq2):
     print a,b,c,d
   return p_value
 
+def run_all_tests(bsqs, alpha):
+  bsqs = enumerate(bsqs)
+  for t in [monobit_test, run_test_fips, run_test_std, fourier_transform_test, ]:
+    passed = []
+    for i, bsq in bsqs:
+      p_value = t(bsq)
+      if p_value < alpha:
+        print "Bit {0} has failed {1} (p-value={2})".format(i, t.__name__, p_value)
+      else:
+        passed.append((i,bsq))
+    bsqs = passed
+  print "Random bits (%d):" % len(passed), [ i for i,e in passed ]
+  for bsq1i, bsq2i in combinations(range(len(bsqs)), 2):
+    p_value = phi_coefficient_test(bsqs[bsq1i][1], bsqs[bsq2i][1])
+    if p_value < alpha:
+      print "Bit {0} and {1} are correlated (p-value={2})".format(bsq1i, bsq2i, p_value)
+
+def analyse(tks, alpha):
+  #dtks = [ unhexlify(t) for t in tks ] 
+  #dtks =  [ base64.urlsafe_b64decode(t + "==") for t in tks ]
+  if not validate_integrity(dtks):
+    return
+  bsqs = expand_tokens_bits(dtks)
+  run_all_tests(bsqs, alpha)
