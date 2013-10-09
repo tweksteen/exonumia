@@ -1,13 +1,12 @@
+import math
 import string
 import operator
+import itertools
 import collections
 
 import scipy.special
 
-from utils import info, success, warning, error
-
-def character_set(tks):
-  return set("".join(tks))
+from utils import info, success, warning, error, alphabet
 
 def validate_charset(cs, verbose):
   # Try to match the character set with something known
@@ -48,27 +47,19 @@ def validate_charset(cs, verbose):
       print warning("  (compared to {})".format("".join(sorted(min_diff_set))))
 
 def expand_tokens_chars(tks):
-  l = len(tks[0])
-  r = []
-  for i in range(l):
-    r.append([t[i] for t in tks])
-  return r
+  return zip(*tks)
 
 def global_freq_test(csqs, verbose):
-  gcs = character_set([ "".join(character_set(csq)) for csq in csqs ])
+  gcs = alphabet([ "".join(alphabet(csq)) for csq in csqs ])
   if verbose:
     print "  Global Character Set:", "".join(sorted(gcs))
   validate_charset(gcs, verbose)
-  return _freq_test("".join(["".join(csq) for csq in csqs]), gcs, verbose)
+  p_value, reason = freq_test("".join(["".join(csq) for csq in csqs]), gcs, verbose)
+  reason += "\nThis could mean that some position does not use the same " \
+            "character set.\nConsider verifying the result of freq_test"
+  return p_value, reason
 
-def local_freq_test(csq, verbose):
-  lcs = character_set(csq)
-  if verbose:
-    print "  Local Character Set:", "".join(sorted(lcs))
-  validate_charset(lcs, verbose)
-  return _freq_test(csq, lcs, verbose)
-
-def _freq_test(csq, cs, verbose):
+def freq_test(csq, cs, verbose):
   f = {}
   n = len(csq)
   for c in cs:
@@ -85,6 +76,53 @@ def _freq_test(csq, cs, verbose):
   reason += "\n ".join([ "'" + k + "'" + ": " + str(v) for k, v in sorted(f.iteritems(), key=operator.itemgetter(1), reverse=True)])
   reason += "}"
   return p_value, reason
+
+def serial_test_nonoverlap(csq, cs, verbose):
+  n = len(csq)
+  v = list(itertools.product(cs, repeat=2))
+  dv = dict(zip([ "".join(x) for x in v], [0,] * len(v)))
+  for i in range(len(csq)/2):
+    dv["".join(csq[2*i:2*i+2])] += 1
+  expected = (float(n)/2) / (len(cs)**2)
+  v_obs = sum([ float((v - expected)**2)/expected for v in dv.values()])
+  if verbose:
+    print "  X^2 = %f" % v_obs
+  p_value = 1 - scipy.special.gammainc((len(cs)**2 - 1)/2, v_obs/2)
+  reason = "Some character transitions are more probable than others:\n"
+  reason += "Min={0} Max={1} E.Avg={2}\n".format(min(dv.values()), max(dv.values()), 
+                                                 expected)
+  reason += "{"
+  reason += "\n ".join([ "'" + "".join(k) + "'" + ": " + str(v) for k, v in sorted(dv.iteritems(), key=operator.itemgetter(1), reverse=True)])
+  reason += "}"
+  return p_value, reason
+
+#def _phi_m(csq, cs, l, m, verbose):
+#  v = list(itertools.product(cs, repeat=m))
+#  dv = dict(zip([ "".join(x) for x in v], [0,] * len(v)))
+#  ecsq = csq + csq[:m-1]
+#  n = len(csq)
+#  for i in range(len(csq)):
+#    dv["".join(ecsq[i:i+m])] += 1
+#  print dv 
+#  print n, sum(dv.values())
+#  assert n == sum(dv.values())
+#  s = sum([ v**2 for k,v in dv.iteritems()])
+#  return ((float(l**m) * s) / n) - n
+#
+#def serial_test_overlap(csq, cs, verbose):
+#  l = len(cs)
+#  n = len(csq)
+#  phi_3 = _phi_m(csq, cs, l, 3, verbose)
+#  phi_2 = _phi_m(csq, cs, l, 2, verbose)
+#  phi_1 = _phi_m(csq, cs, l, 1, verbose)
+#  print phi_3, phi_2, phi_1
+#  d1 = phi_3 - phi_2
+#  d2 = phi_3 - 2*phi_2 + phi_1
+#  print d1, d2
+#  p_value1 = 1 - scipy.special.gammainc(2, d1/2)
+#  p_value2 = 1 - scipy.special.gammainc(1, d2/2)
+#  print p_value1, p_value2
+#  return p_value, reason
 
 def correlation_test(csq1, csq2, cs):
   pairs = zip(csq1, csq2)
@@ -119,10 +157,14 @@ def run_all_tests(csqs, alpha, verbose):
       print "  Reason:\n  {}".format(reason.replace("\n","\n  "))
     elif verbose:
       print success("  {0} has passed (p-value={1})".format(test.__name__, p_value))
-  for test in [local_freq_test, ]:
+  for test in [ freq_test, serial_test_nonoverlap, ]:
     for i,csq in enumerate(csqs):
       print "Running {} at position {}".format(test.__name__, i)
-      p_value, reason = test(csq, verbose)
+      lcs = alphabet(csq)
+      if verbose:
+        print "  Local Character Set:", "".join(sorted(lcs))
+      validate_charset(lcs, verbose)
+      p_value, reason = test(csq, lcs, verbose)
       if p_value < alpha:
         print error("  {0} has failed (character position={1}, p-value={2})".format(
                                                             test.__name__, i, p_value))

@@ -1,3 +1,5 @@
+import math 
+
 style_normal = "\033[0m"
 style_great_success = "\033[1;32m"
 style_success = "\033[32m"
@@ -22,3 +24,8 @@ def base32hex(s):
   ctable = '0123456789abcdefghijklmnopqrstuv'
   return "".join([ ctable.index(c) for c in s])
 
+def alphabet(tks):
+  return set("".join(tks))
+
+def phi(z):
+  return (1/2.) * (1 + math.erf(z/math.sqrt(2)))
