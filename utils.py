@@ -9,7 +9,7 @@ style_info = "\033[0m"
 style_stealthy = "\033[1;37m"
 
 def __generic_style(c):
-  def _x(s, rl=False):
+  def _x(s):
     return c + s + style_normal
   return _x
 

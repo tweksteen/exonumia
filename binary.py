@@ -97,11 +97,10 @@ def _phi_m(bsq, m):
   for i in range(len(bsq)):
     dv["".join(map(str,ebsq[i:i+m]))] += 1
   assert n == sum(dv.values())
-  s = sum([ v**2 for k,v in dv.iteritems()])
+  s = sum([ v**2 for v in dv.values()])
   return ((float(2**m) * s) / n) - n, dv
 
 def serial_test(bsq):
-  n = len(bsq)
   phi_3, dv3 = _phi_m(bsq, 3)
   reason = "Some patterns are more likely to appears:\n"
   reason += str(dv3) + "\n"
@@ -133,7 +132,7 @@ def backward_cumsum_test(bsq):
 
 def cumsum_test(bsq, reverse=False):
   n = len(bsq)
-  st = 0 
+  st = 0
   z = -1
   bsqc = [ 2*x-1 for x in bsq ]
   for i in range(n):
@@ -143,9 +142,9 @@ def cumsum_test(bsq, reverse=False):
       st += bsqc[i]
     if abs(st) > z:
       z = abs(st)
-  t1 = sum([ phi(((4*k+1)*z)/sqrt(n)) - phi(((4*k-1)*z)/sqrt(n)) for k in 
+  t1 = sum([ phi(((4*k+1)*z)/sqrt(n)) - phi(((4*k-1)*z)/sqrt(n)) for k in
            range((-n/z+1)/4, (n/z-1)/4+1)])
-  t2 = sum([ phi(((4*k+3)*z)/sqrt(n)) - phi(((4*k+1)*z)/sqrt(n)) for k in 
+  t2 = sum([ phi(((4*k+3)*z)/sqrt(n)) - phi(((4*k+1)*z)/sqrt(n)) for k in
            range((-n/z-3)/4, (n/z-1)/4+1)])
   p_value = 1 - t1 + t2
   reason  = "A random walk significantly deviates from its origin."
@@ -162,15 +161,15 @@ def phi_coefficient_test(bsq1, bsq2):
     phi = float(a*d - b*c) / sqrt((a+b)*(c+d)*(a+c)*(b+d))
     chi_2 = n * pow(phi,2)
     p_value = erfc(sqrt(chi_2/2) )
-  reason = "Two characters sequences are correlated. An abnormal level of pairs "  
-  reason += "has been detected:\n"
+  reason = "Two characters sequences are correlated. An abnormal level of "
+  reason += "pairs has been detected:\n"
   reason += "#(0,0): {} #(0,1): {} #(1,0): {} #(1,1): {}".format(a,b,c,d)
   return p_value, reason
 
 def run_all_tests(bsqs, alpha, filtered, verbose):
   n = len(bsqs)
   ibsqs = dict(zip(range(n), bsqs))
-  for test in [frequency_test, serial_test, run_test, fourier_transform_test, 
+  for test in [frequency_test, serial_test, run_test, fourier_transform_test,
                cumsum_test, backward_cumsum_test]:
     print "Running {}".format(test.__name__)
     failed = set()
@@ -178,12 +177,12 @@ def run_all_tests(bsqs, alpha, filtered, verbose):
       p_value, reason = test(bsq)
       if p_value < alpha:
         print error("  {0} has failed (bit position={1}, p-value={2})".format(
-                                                            test.__name__, i, p_value))
+                                                   test.__name__, i, p_value))
         print "  Reason:\n  {}".format(reason.replace("\n", "\n  "))
         failed.add(i)
       elif verbose:
-          print success("  {0} has passed (bit position={1}, p-value={2})".format(
-                                                            test.__name__, i, p_value))
+        print success("  {0} has passed (bit position={1}, p-value={2})".format(
+                                                     test.__name__, i, p_value))
     if filtered:
       ibsqs = dict([ (i, bsq) for i, bsq in ibsqs.iteritems() if i not in failed ])
       print "Keeping the following positions for further testing: ", ibsqs.keys()
@@ -194,12 +193,12 @@ def run_all_tests(bsqs, alpha, filtered, verbose):
     for bsq1i, bsq2i in itertools.combinations(ibsqs.keys(), 2):
       p_value, reason = phi_coefficient_test(bsqs[bsq1i], bsqs[bsq2i])
       if p_value < alpha:
-        print error("  correlation_test has failed (bit positions=({0},{1}), p-value={2})".format(
-                                                            bsq1i, bsq2i, p_value))
+        print error("  correlation_test has failed (bit positions=({0},{1})," \
+                    " p-value={2})".format(bsq1i, bsq2i, p_value))
         print "  Reason:\n  {}".format(reason.replace("\n", "\n  "))
       elif verbose:
-          print success("  correlation_test  has passed (bit positions=({0},{1}), " \
-                        "p-value={2})".format(bsq1i, bsq2i, p_value))
+        print success("  correlation_test  has passed (bit positions=" \
+                      "({0},{1}), p-value={2})".format(bsq1i, bsq2i, p_value))
   else:
     print "Tokens are only one bit long. Not running the correlation tests."
 

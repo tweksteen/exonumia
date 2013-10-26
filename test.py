@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 import sys
-import os.path
 import argparse
 
 import binary
 import character 
-import utils
 
 def input_token():
   x = sys.stdin.read()[:-1]
