@@ -61,6 +61,8 @@ def decode_and_expand(tks, decode_method):
     bsqs = expand_bytes(dtks)
   else:
     print error("Decoding method unknown: {}".format(decode_method))
+    print error("Available methods are: base64, base64_urlsafe, bin, hex")
+    return None, None
   return dtks, bsqs
 
 def frequency_test(bsq):
@@ -205,5 +207,6 @@ def run_all_tests(bsqs, alpha, filtered, verbose):
 def analyse(tks, alpha, decoding, filtered, verbose):
   print info("Running the binary analysis on {} tokens...".format(len(tks)))
   dtks, bsqs = decode_and_expand(tks, decoding)
-  run_all_tests(bsqs, alpha, filtered, verbose)
+  if dtks:
+    run_all_tests(bsqs, alpha, filtered, verbose)
 

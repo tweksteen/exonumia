@@ -23,7 +23,7 @@ def main():
                      help="do not execute further tests on already failed bits")
   parser.add_argument("-a", "--alpha", action="store", type=float,
                      help="alpha", default=0.001)
-  parser.add_argument("-e", "--encoding", action="store", default="",
+  parser.add_argument("-e", "--encoding", action="store", default="hex",
                      help="specify the format of the tokens")
   group = parser.add_mutually_exclusive_group(required=True)
   group.add_argument("-u", "--urandom", 
