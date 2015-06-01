@@ -9,6 +9,9 @@ from numpy import fft, abs, sum
 from utils import info, success, warning, error, phi
 
 def validate_length(tks):
+  """
+  Validate that each token have the same length
+  """
   sizes = set([ len(t) for t in tks])
   if len(sizes) == 1:
     print "Tokens have consistent length"
@@ -18,6 +21,9 @@ def validate_length(tks):
     return False
 
 def expand_bytes(tks):
+  """
+  Create a list of bit strings from each position within the token
+  """
   l = len(tks[0]) * 8
   r = []
   for i in range(l):
@@ -41,28 +47,31 @@ def _b64_decode(tks, fct):
     done = True
   return dtks
 
-def decode_and_expand(tks, decode_method):
+def decode(tks, decode_method):
   print "Decoding using", decode_method
   if decode_method == "base64":
-    dtks = _b64_decode(tks, base64.decodestring)
-    if not validate_length(dtks): return
-    bsqs = expand_bytes(dtks)
+    return _b64_decode(tks, base64.decodestring)
   elif decode_method == "base64_urlsafe":
-    dtks = _b64_decode(tks, base64.urlsafe_b64decode)
-    if not validate_length(dtks): return
-    bsqs = expand_bytes(dtks)
+    return _b64_decode(tks, base64.urlsafe_b64decode)
   elif decode_method == "bin":
-    dtks = tks
-    if not validate_length(dtks): return
-    bsqs = [ [ int(x) for x in l ] for l in zip(*dtks) ]
+    return tks
   elif decode_method == "hex":
-    dtks = [ unhexlify(tk) for tk in tks ]
-    if not validate_length(dtks): return
-    bsqs = expand_bytes(dtks)
+    return [ unhexlify(tk) for tk in tks ]
+  elif decode_method == None:
+    return tks
   else:
     print error("Decoding method unknown: {}".format(decode_method))
     print error("Available methods are: base64, base64_urlsafe, bin, hex")
+  return None
+
+def decode_and_expand(tks, decode_method):
+  dtks = decode(tks, decode_method)
+  if not dtks or not validate_length(dtks):
     return None, None
+  if decode_method in ("base64", "base64_urlsafe", "hex"):
+    bsqs = expand_bytes(dtks)
+  elif decode_method == "bin":
+    bsqs = [ [ int(x) for x in l ] for l in zip(*dtks) ]
   return dtks, bsqs
 
 def frequency_test(bsq):
